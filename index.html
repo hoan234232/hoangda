@@ -134,6 +134,16 @@ img{pointer-events:none}
 #btnPlace.off{filter:grayscale(.75) brightness(.75)}
 #btnExit{background:linear-gradient(#ff8a6b,#d84438);color:#fff;padding:8px 12px}
 #hud.building #cluster,#hud.building #midBtns{display:none}
+/* chọn ô xây: chạm bản đồ + nút nhích ô + dòng gợi ý */
+#aimZone{position:absolute;inset:0;touch-action:none;pointer-events:none}
+#hud.building #aimZone{pointer-events:auto}
+#buildHint{position:absolute;left:50%;bottom:calc(76px + var(--sab));transform:translateX(-50%);display:none;max-width:84vw;white-space:nowrap;font-size:12px;font-weight:800;color:var(--parch);background:rgba(44,30,15,.95);border:2px solid #14100a;border-radius:12px;padding:3px 14px;pointer-events:none;text-shadow:0 1px 1px #000}
+#buildHint.bad{background:rgba(150,40,30,.95);color:#ffd9d3}
+#hud.building #buildHint{display:block}
+#nudgePad{position:absolute;right:calc(14px + var(--sar));bottom:calc(14px + var(--sab));width:128px;height:128px;display:none;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:4px}
+#hud.building #nudgePad{display:grid}
+.nb{width:40px;height:40px;padding:0;border-radius:11px;border:3px solid #14100a;background:linear-gradient(#5a4026,#33220f);box-shadow:0 3px 0 #14100a;color:#f0dfb6;font-size:16px;font-weight:800;line-height:1;cursor:pointer;touch-action:none;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+.nb:active{transform:translateY(2px);box-shadow:0 1px 0 #14100a}
 #pausedChip{position:absolute;left:22%;top:44%;display:flex;align-items:center;gap:8px;background:rgba(20,14,6,.85);border:2px solid var(--tan);border-radius:12px;padding:8px 16px;font-weight:800;font-size:14px;color:var(--amber);box-shadow:0 0 24px rgba(0,0,0,.6)}
 #pausedChip img{width:20px;height:20px}
 #kbHint{position:absolute;left:calc(10px + var(--sal));bottom:calc(150px + var(--sab));font-size:10px;color:rgba(240,223,182,.55);font-weight:600;text-shadow:0 1px 2px #000;pointer-events:none}
@@ -253,6 +263,7 @@ h2.ptitle.gold{color:#ffd66b;text-shadow:0 0 26px rgba(255,214,107,.6),0 3px 0 #
   <div id="vignette"></div><div id="hurtFx"></div><div id="grain"></div>
 
   <div id="hud" class="hidden">
+    <div id="aimZone"></div>
     <div id="topbar">
       <div id="statCol">
         <div class="bar"><div class="fill" id="hpFill"></div><div class="txt" id="hpTxt"></div></div>
@@ -295,6 +306,14 @@ h2.ptitle.gold{color:#ffd66b;text-shadow:0 0 26px rgba(255,214,107,.6),0 3px 0 #
     <div id="buildBar" class="hidden pe">
       <img id="bpIc" alt=""><div id="bpInfo"><div id="bpName"></div><div id="bpCost"></div></div>
       <button class="bbtn" id="btnPlace">ĐẶT</button><button class="bbtn" id="btnExit">✕</button>
+    </div>
+    <div id="buildHint"></div>
+    <div id="nudgePad" class="pe">
+      <button class="nb" id="nbU" style="grid-column:2;grid-row:1" aria-label="Lên">▲</button>
+      <button class="nb" id="nbL" style="grid-column:1;grid-row:2" aria-label="Trái">◀</button>
+      <button class="nb" id="nbC" style="grid-column:2;grid-row:2" aria-label="Về trước mặt nhân vật">◎</button>
+      <button class="nb" id="nbR" style="grid-column:3;grid-row:2" aria-label="Phải">▶</button>
+      <button class="nb" id="nbD" style="grid-column:2;grid-row:3" aria-label="Xuống">▼</button>
     </div>
     <div id="pausedChip" class="hidden"><img data-ic="pause" alt="">TẠM DỪNG — đóng bảng để chơi tiếp</div>
     <div id="kbHint">WASD di chuyển • J/Space hành động • K lướt • E ăn • C chế tạo • B xây • Esc tạm dừng</div>
@@ -587,7 +606,7 @@ const G={state:"boot",diff:store.get("hd_diff","normal"),time:0,t:12,day:1,slow:
  cam:{x:0,y:140},shake:0,hurt:0,barMsg:0,questT:0,qi:0,qFlash:0,throneArm:0,
  player:null,fire:null,throne:null,nodes:[],decor:[],animals:[],monsters:[],buildings:[],pickups:[],parts:[],floats:[],arrows:[],
  inv:null,gear:null,stats:null,wave:{active:false,queue:[],wDone:0,wTotal:0},boss:null,
- build:{on:false,bp:null,gx:0,gy:0,valid:false,target:null},
+ build:{on:false,bp:null,gx:0,gy:0,valid:false,target:null,manual:false,mx:0,my:0,why:""},
  joy:{id:null,ox:0,oy:0,x:0,y:0},keys:{},attackHeld:false,cds:{atk:0,dash:0,eat:0},
  ctx:null,ctxKey:"",swing:null,zoneSeen:[true,false,false,false],barFlash:[0,0,0,0],unlockFx:[0,0,0,0],
  invDirty:true,resCache:{},panel:{mode:"craft",tab:"gear"},autoP:false,pickSnd:0,birdT:5,cricketT:2,emberT:0,flyT:0};
@@ -602,7 +621,7 @@ function reset(){
  G.fire={x:0,y:0,level:1,hp:250,maxHp:250,ruined:false,flash:0};
  G.throne={x:0,y:-1600,defeated:false};
  G.nodes=[];G.decor=[];G.animals=[];G.monsters=[];G.monsterGrave=[];G.buildings=[];G.pickups=[];G.parts=[];G.floats=[];G.arrows=[];
- G.wave={active:false,queue:[],wDone:0,wTotal:0};G.boss=null;G.build={on:false,bp:null,gx:0,gy:0,valid:false,target:null};
+ G.wave={active:false,queue:[],wDone:0,wTotal:0};G.boss=null;G.build={on:false,bp:null,gx:0,gy:0,valid:false,target:null,manual:false,mx:0,my:0,why:""};
  G.cds={atk:0,dash:0,eat:0};G.attackHeld=false;G.ctx=null;G.ctxKey="";G.swing=null;
  G.zoneSeen=[true,false,false,false];G.barFlash=[0,0,0,0];G.unlockFx=[0,0,0,0];
  G.cam.x=0;G.cam.y=150;G.invDirty=true;G.resCache={};
@@ -897,7 +916,7 @@ function collideNodes(e,r){for(const n of G.nodes){if(n.hp<=0||!NODECFG[n.type].
  const d=hyp(dx,dy);if(d>0&&d<min){e.x+=dx/d*(min-d);e.y+=dy/d*(min-d);}}}
 
 /* ================= BUILD ================= */
-function enterBuild(bp){G.build.on=true;G.build.bp=bp;$("hud").classList.add("building");
+function enterBuild(bp){G.build.on=true;G.build.bp=bp;G.build.manual=false;$("hud").classList.add("building");
  $("buildBar").classList.remove("hidden");const B=BUILDS[bp];
  $("bpIc").src=ICO[B?B.ic:"close"];$("bpName").textContent=B?B.n:"Phá Dỡ (hoàn 50%)";
  $("btnPlace").textContent=bp==="demolish"?"PHÁ":"ĐẶT";refreshBpCost();AU.play("click");}
@@ -906,18 +925,28 @@ function refreshBpCost(){const bp=G.build.bp,B=BUILDS[bp];
 function exitBuild(){G.build.on=false;$("hud").classList.remove("building");$("buildBar").classList.add("hidden");AU.play("close");}
 function costHTML(cost){let s="";for(const k in cost)s+=`<span class="cost ${G.inv[k]>=cost[k]?"":"miss"}"><img src="${ICO[k]}">${cost[k]}</span>`;return s;}
 function ghostCalc(){const P=G.player,g=G.build;
- const px=P.x+Math.cos(P.face)*80,py=P.y+Math.sin(P.face)*80;
- if(g.bp==="demolish"){let best=null,bd=1e9;for(const b of G.buildings){const d=hyp(px-b.x,py-b.y);if(d<60&&d<bd){bd=d;best=b;}}
-  g.target=best;g.valid=!!best;g.gx=best?best.x:Math.round(px/40)*40;g.gy=best?best.y:Math.round(py/40)*40;return;}
+ /* manual = người chơi tự chạm/nhích chọn ô (mx,my là toạ độ thế giới); không thì ô nằm trước mặt nhân vật */
+ const px=g.manual?g.mx:P.x+Math.cos(P.face)*80,py=g.manual?g.my:P.y+Math.sin(P.face)*80;
+ if(g.bp==="demolish"){let best=null,bd=1e9;const reach=g.manual?32:60;
+  for(const b of G.buildings){const d=hyp(px-b.x,py-b.y);if(d<reach&&d<bd){bd=d;best=b;}}
+  g.target=best;g.valid=!!best;g.why="";g.gx=best?best.x:Math.round(px/40)*40;g.gy=best?best.y:Math.round(py/40)*40;return;}
  g.gx=Math.round(px/40)*40;g.gy=Math.round(py/40)*40;g.target=null;
- let ok=Math.abs(g.gx)<WORLD-40&&Math.abs(g.gy)<WORLD-40;
- if(ok&&ZONES[zoneOf(g.gx,g.gy)].req>G.fire.level)ok=false;
- if(ok&&hyp(g.gx-P.x,g.gy-P.y)<34)ok=false;
- if(ok&&hyp(g.gx-G.fire.x,g.gy-G.fire.y)<70)ok=false;
- if(ok&&hyp(g.gx-G.throne.x,g.gy-G.throne.y)<95)ok=false;
- if(ok)for(const b of G.buildings){if(Math.abs(g.gx-b.x)<40&&Math.abs(g.gy-b.y)<40){ok=false;break;}}
- if(ok)for(const n of G.nodes){if(n.hp>0&&hyp(g.gx-n.x,g.gy-n.y)<n.r+24){ok=false;break;}}
- g.valid=ok;}
+ let why="";
+ if(!(Math.abs(g.gx)<WORLD-40&&Math.abs(g.gy)<WORLD-40))why="Ngoài rìa bản đồ";
+ if(!why&&ZONES[zoneOf(g.gx,g.gy)].req>G.fire.level)why="Vùng này chưa mở — cần Lửa trại cấp "+ZONES[zoneOf(g.gx,g.gy)].req;
+ if(!why&&hyp(g.gx-P.x,g.gy-P.y)<34)why="Đang có nhân vật đứng ở ô này";
+ if(!why&&hyp(g.gx-G.fire.x,g.gy-G.fire.y)<70)why="Quá gần lửa trại";
+ if(!why&&hyp(g.gx-G.throne.x,g.gy-G.throne.y)<95)why="Quá gần Ngai Đen";
+ if(!why)for(const b of G.buildings){if(Math.abs(g.gx-b.x)<40&&Math.abs(g.gy-b.y)<40){why="Đã có công trình ở ô này";break;}}
+ if(!why)for(const n of G.nodes){if(n.hp>0&&hyp(g.gx-n.x,g.gy-n.y)<n.r+24){why="Vướng cây / đá / tài nguyên";break;}}
+ g.why=why;g.valid=!why;}
+/* chạm/kéo lên bản đồ: đưa ô xây tới toạ độ thế giới; nút mũi tên nhích đúng 1 ô lưới */
+function aimAt(wx,wy){const g=G.build;if(!g.on)return;g.manual=true;g.mx=wx;g.my=wy;ghostCalc();}
+function aimScreen(cx,cy){aimAt(cx+G.cam.x-vw/2,cy+G.cam.y-vh/2);}
+function nudge(dx,dy){const g=G.build;if(!g.on)return;ghostCalc();
+ const bx=g.manual?Math.round(g.mx/40)*40:g.gx,by=g.manual?Math.round(g.my/40)*40:g.gy;
+ g.mx=bx+dx*40;g.my=by+dy*40;g.manual=true;ghostCalc();AU.play("click");}
+function aimReset(){const g=G.build;if(!g.on)return;g.manual=false;ghostCalc();AU.play("click");}
 function tryPlace(){if(!G.build.on)return;ghostCalc();const g=G.build;
  if(g.bp==="demolish"){if(!g.target){AU.play("error");return;}
   const b=g.target,c=BUILDS[b.type].cost;for(const k in c)addInv(k,Math.floor(c[k]*.5));
@@ -1075,18 +1104,29 @@ function inputVec(){const j=G.joy,k=G.keys;let x=j.x,y=j.y;
  const l=hyp(x,y);if(l>1){x/=l;y/=l;}if(l<.12){x=0;y=0;}return{x,y};}
 const jz=$("joyZone"),jb=$("joyBase"),jk=$("joyKnob");
 jz.addEventListener("pointerdown",e=>{if(G.state!=="play")return;e.preventDefault();
+ G.joy.sx=e.clientX;G.joy.sy=e.clientY;G.joy.moved=false;
  G.joy.id=e.pointerId;try{jz.setPointerCapture(e.pointerId);}catch(x){}
  const r=jz.getBoundingClientRect();
  const cx=clamp(e.clientX,r.left+58,r.right-58),cy=clamp(e.clientY,r.top+58,r.bottom-58);
  G.joy.ox=cx;G.joy.oy=cy;G.joy.x=0;G.joy.y=0;
  jb.style.left=(cx-r.left-58)+"px";jb.style.top=(cy-r.top-58)+"px";jb.style.bottom="auto";});
 jz.addEventListener("pointermove",e=>{if(e.pointerId!==G.joy.id)return;
+ if(!G.joy.moved&&hyp(e.clientX-G.joy.sx,e.clientY-G.joy.sy)>9)G.joy.moved=true;
+ /* đang xây: chạm nhẹ = chọn ô, chỉ kéo thật mới điều khiển nhân vật */
+ if(G.build.on&&!G.joy.moved)return;
  let dx=e.clientX-G.joy.ox,dy=e.clientY-G.joy.oy;const d=hyp(dx,dy),R=50;
  if(d>R){dx*=R/d;dy*=R/d;}G.joy.x=dx/R;G.joy.y=dy/R;
  jk.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;});
 function joyEnd(e){if(e.pointerId!==G.joy.id)return;G.joy.id=null;G.joy.x=G.joy.y=0;
+ if(e.type==="pointerup"&&!G.joy.moved&&G.build.on&&G.state==="play"){aimScreen(G.joy.sx,G.joy.sy);AU.play("click");}
  jb.style.left=jb.style.top=jb.style.bottom="";jk.style.transform="translate(-50%,-50%)";}
 jz.addEventListener("pointerup",joyEnd);jz.addEventListener("pointercancel",joyEnd);
+const az=$("aimZone");let aimId=null;
+az.addEventListener("pointerdown",e=>{if(!G.build.on||G.state!=="play")return;e.preventDefault();AU.init();
+ aimId=e.pointerId;try{az.setPointerCapture(e.pointerId);}catch(x){}aimScreen(e.clientX,e.clientY);AU.play("click");});
+az.addEventListener("pointermove",e=>{if(e.pointerId===aimId&&G.build.on&&G.state==="play")aimScreen(e.clientX,e.clientY);});
+const aimEnd=e=>{if(e.pointerId===aimId)aimId=null;};
+az.addEventListener("pointerup",aimEnd);az.addEventListener("pointercancel",aimEnd);
 function press(el,fn){el.addEventListener("pointerdown",e=>{e.preventDefault();AU.init();fn();});}
 (function(){const b=$("btnAtk");
  b.addEventListener("pointerdown",e=>{e.preventDefault();AU.init();try{b.setPointerCapture(e.pointerId);}catch(x){}
@@ -1097,6 +1137,7 @@ press($("btnDash"),dashAction);press($("btnEat"),eatAction);
 press($("btnCraft"),()=>{if(G.state==="panel"&&G.panel.mode==="craft")closePanel();else openPanel("craft");});
 press($("btnBuild"),()=>{if(G.state==="panel"&&G.panel.mode==="build")closePanel();else openPanel("build");});
 press($("btnPlace"),tryPlace);press($("btnExit"),exitBuild);
+press($("nbU"),()=>nudge(0,-1));press($("nbD"),()=>nudge(0,1));press($("nbL"),()=>nudge(-1,0));press($("nbR"),()=>nudge(1,0));press($("nbC"),aimReset);
 press($("btnPause"),()=>{if(G.state==="play")openPause();});
 press($("btnPanelClose"),closePanel);press($("scrim"),closePanel);
 press($("btnStart"),startGame);press($("btnTut"),dismissTut);
@@ -1476,7 +1517,18 @@ function drawGlows(lights){ctx.globalCompositeOperation="lighter";
    g.addColorStop(0,"rgba(255,79,216,.4)");g.addColorStop(1,"rgba(255,79,216,0)");ctx.fillStyle=g;ctx.fillRect(B.x-70,B.y-90,140,140);}}
  ctx.globalCompositeOperation="source-over";}
 function drawGhost(){const g=G.build;if(!g.on)return;
- if(g.bp==="demolish"){if(g.target){ctx.strokeStyle="rgba(255,80,70,.9)";ctx.lineWidth=3;ctx.setLineDash([6,5]);
+ /* lưới ô 40px trong vùng nhìn thấy, giúp biết chạm vào đâu thì ra ô nào */
+ {ctx.strokeStyle="rgba(255,244,214,.16)";ctx.lineWidth=1;
+  const gl=Math.floor((G.cam.x-vw/2-20)/40)*40+20,gt=Math.floor((G.cam.y-vh/2-20)/40)*40+20,ge=G.cam.x+vw/2+40,gb=G.cam.y+vh/2+40;
+  ctx.beginPath();for(let xx=gl;xx<ge;xx+=40){ctx.moveTo(xx,gt);ctx.lineTo(xx,gb);}
+  for(let yy=gt;yy<gb;yy+=40){ctx.moveTo(gl,yy);ctx.lineTo(ge,yy);}ctx.stroke();}
+ if(g.bp==="demolish"){
+  /* đánh dấu mọi công trình đang thấy được để biết chạm vào đâu mà dỡ */
+  ctx.strokeStyle="rgba(255,150,120,.5)";ctx.lineWidth=2;ctx.setLineDash([5,5]);
+  for(const o of G.buildings)if(o!==g.target&&Math.abs(o.x-G.cam.x)<vw/2+30&&Math.abs(o.y-G.cam.y)<vh/2+30)ctx.strokeRect(o.x-22,o.y-26,44,44);
+  ctx.setLineDash([]);
+  if(!g.target){ctx.strokeStyle="rgba(255,255,255,.55)";ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.strokeRect(g.gx-22,g.gy-22,44,44);ctx.setLineDash([]);}
+  if(g.target){ctx.strokeStyle="rgba(255,80,70,.9)";ctx.lineWidth=3;ctx.setLineDash([6,5]);
    ctx.strokeRect(g.target.x-24,g.target.y-28,48,48);ctx.setLineDash([]);
    ctx.strokeStyle="#ff5348";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(g.target.x-10,g.target.y-14);ctx.lineTo(g.target.x+10,g.target.y+6);
    ctx.moveTo(g.target.x+10,g.target.y-14);ctx.lineTo(g.target.x-10,g.target.y+6);ctx.stroke();}
@@ -1601,7 +1653,13 @@ function updateHud(){const P=G.player;
   else if(c.kind==="throne"){key="t";ic="crown";lb=G.throne.defeated?"Ngai vỡ":"Khiêu chiến";}}
  if(key!==lastCtx){lastCtx=key;$("icAtk").src=ICO[ic];$("atkLbl").textContent=lb;}
  if(G.build.on){const ok=G.build.valid&&(G.build.bp==="demolish"||canAfford(BUILDS[G.build.bp].cost));
-  $("btnPlace").classList.toggle("off",!ok);}
+  $("btnPlace").classList.toggle("off",!ok);
+  const gb=G.build,BB=BUILDS[gb.bp];let hint,bad=false;
+  if(gb.bp==="demolish")hint=gb.target?"Bấm PHÁ để dỡ công trình đã chọn":"Chạm vào công trình để chọn phá";
+  else if(!gb.valid){hint=gb.why||"Không thể đặt ở đây";bad=true;}
+  else if(!canAfford(BB.cost)){hint="Không đủ nguyên liệu";bad=true;}
+  else hint="Chạm bản đồ để chọn ô · bấm ĐẶT để xây";
+  const hb=$("buildHint");if(hb.textContent!==hint)hb.textContent=hint;hb.classList.toggle("bad",bad);}
  drawDial();drawMinimap();}
 
 /* ================= CÀI ĐẶT (PWA) ================= */

@@ -1,5 +1,5 @@
 /* Hoang Da — service worker: chơi offline sau lần tải đầu */
-const CACHE = "hoangda-v2";
+const CACHE = "hoangda-v3";
 const CORE = ["./", "./index.html", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png",
   "./music/ban-ngay.mp3", "./music/ban-dem.mp3"];
