@@ -57,6 +57,7 @@ Hồi sinh tại lửa trại, giữ nguyên trang bị và căn cứ nhưng m�
 | `C` · `B` | Mở bảng Chế tạo · Xây dựng |
 | `Esc` / `P` | Tạm dừng |
 | `M` | Bật/tắt âm thanh |
+| `N` | Bật/tắt nhạc nền (hoặc nút trong màn hình Tạm dừng) |
 | `Enter` | Bắt đầu (ở màn chính) / đóng hướng dẫn |
 
 > Kỷ lục đêm sống sót và số lần diệt trùm được lưu trên máy. Tiến trình ván đang chơi **không** được lưu.
@@ -113,3 +114,14 @@ hoang-da/
 - Chết khi đang đánh trùm: trùm quay về ngai thay vì đuổi theo về căn cứ.
 - Hồi sinh dọn quái đang vây quanh lửa trại; lính canh không bị nhân bản khi chơi lại.
 - Thêm nút cài đặt, hỗ trợ offline, kẹt phím khi mất focus, `Enter` đóng hướng dẫn.
+
+
+---
+
+## Nhạc nền
+
+- `music/ban-ngay.mp3` (Hopeful Dawn) phát ban ngày, `music/ban-dem.mp3` (Night Ambient) phát ban đêm. Cả hai là bản lặp liền mạch (đã cắt đoạn lặng, nối crossfade).
+- Nhạc chuyển mượt theo đồng hồ ngày đêm: bắt đầu nhường chỗ cho nhạc đêm từ lúc hoàng hôn (giây 80), nhạc đêm khởi động lại từ đầu mỗi đêm để cao trào trùng lúc quái đông nhất, rồi nhường lại cho nhạc ngày khi bình minh. Gặp Chúa Tể Bóng Đêm thì chuyển thẳng sang nhạc đêm.
+- Tắt riêng nhạc: phím `N` hoặc nút **Nhạc nền** trong màn hình Tạm dừng (tiếng hiệu ứng vẫn giữ). Nút/phím `M` vẫn tắt toàn bộ âm thanh.
+- Mở bằng `file://` nhạc vẫn phát nhưng lặp có thể hở một nhịp nhỏ; nên chạy qua máy chủ cục bộ hoặc cài về máy.
+- Muốn đổi nhạc: thay hai file trên (giữ nguyên tên) rồi đổi tên cache `hoangda-v2` trong `sw.js`.

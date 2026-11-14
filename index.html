@@ -339,6 +339,7 @@ h2.ptitle.gold{color:#ffd66b;text-shadow:0 0 26px rgba(255,214,107,.6),0 3px 0 #
         <button class="bigbtn green" id="btnResume"><img data-ic="play" alt="">TIẾP TỤC</button>
         <button class="bigbtn ghost" id="btnHow"><img data-ic="book" alt="">Hướng dẫn</button>
         <button class="bigbtn ghost" id="btnPSound"><img id="icPSound" alt="">Âm thanh</button>
+        <button class="bigbtn ghost" id="btnPMusic">🎵 Nhạc nền: BẬT</button>
         <button class="bigbtn ghost" id="btnReP"><img data-ic="restart" alt="">Chơi lại từ đầu</button>
         <button class="bigbtn ghost" id="btnHome"><img data-ic="home" alt="">Màn hình chính</button>
       </div>
@@ -509,7 +510,7 @@ const ICO={},IMG={};
 const AU={ctx:null,master:null,muted:store.get("hd_mute",false),nbuf:null,wind:null,windG:null,
  init(){if(this.ctx)return;try{const AC=window.AudioContext||window.webkitAudioContext;this.ctx=new AC();this.master=this.ctx.createGain();this.master.gain.value=this.muted?0:.8;this.master.connect(this.ctx.destination);
   const len=this.ctx.sampleRate;this.nbuf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);const d=this.nbuf.getChannelData(0);for(let i=0;i<len;i++)d[i]=rnd()*2-1;
-  const src=this.ctx.createBufferSource();src.buffer=this.nbuf;src.loop=true;const f=this.ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=320;this.windG=this.ctx.createGain();this.windG.gain.value=0;src.connect(f);f.connect(this.windG);this.windG.connect(this.master);src.start();
+  const src=this.ctx.createBufferSource();src.buffer=this.nbuf;src.loop=true;const f=this.ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=320;this.windG=this.ctx.createGain();this.windG.gain.value=0;src.connect(f);f.connect(this.windG);this.windG.connect(this.master);src.start();this.musicLoad();
  }catch(e){}if(this.ctx&&this.ctx.state==="suspended")this.ctx.resume();},
  setMute(m){this.muted=m;store.set("hd_mute",m);if(this.master)this.master.gain.value=m?0:.8;},
  tone(w,f0,f1,d,v,when){if(!this.ctx||this.muted)return;const t=this.ctx.currentTime+(when||0);const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=w;o.frequency.setValueAtTime(Math.max(1,f0),t);o.frequency.exponentialRampToValueAtTime(Math.max(1,f1||f0),t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+d+.03);},
@@ -545,7 +546,33 @@ const AU={ctx:null,master:null,muted:store.get("hd_mute",false),nbuf:null,wind:n
   case"chirp":T("sine",2500,1900,.08,.045);T("sine",2800,2200,.07,.04,.11);break;
   case"cricket":for(let i=0;i<3;i++)T("square",4200,4200,.03,.018,i*.06);break;
  }},
- setWind(v){if(this.windG&&this.ctx)this.windG.gain.setTargetAtTime(this.muted?0:v,this.ctx.currentTime,.8);}
+ setWind(v){if(this.windG&&this.ctx)this.windG.gain.setTargetAtTime(this.muted?0:v,this.ctx.currentTime,.8);},
+ /* ===== NHẠC NỀN: music/ban-ngay.mp3 + music/ban-dem.mp3, chuyển mượt theo đồng hồ ngày đêm ===== */
+ M:{on:!store.get("hd_nomusic",false),ready:false,loading:false,mode:null,dg:null,ng:null,db:null,nb:null,ds:null,ns:null,de:null,ne:null},
+ async musicLoad(){const M=this.M,c=this.ctx;if(M.loading||M.ready)return;M.loading=true;
+  try{const get=async u=>{const r=await fetch(u);if(!r.ok)throw new Error("x");return c.decodeAudioData(await r.arrayBuffer())};
+   const [d,n]=await Promise.all([get("music/ban-ngay.mp3"),get("music/ban-dem.mp3")]);
+   M.dg=c.createGain();M.ng=c.createGain();M.dg.gain.value=0;M.ng.gain.value=0;M.dg.connect(this.master);M.ng.connect(this.master);M.db=d;M.nb=n;M.mode="web"}
+  catch(e){try{M.de=new Audio("music/ban-ngay.mp3");M.ne=new Audio("music/ban-dem.mp3");M.de.loop=M.ne.loop=true;M.de.volume=M.ne.volume=0;M.mode="el"}catch(_){M.mode=null}}
+  M.ready=!!M.mode;M.loading=false},
+ musicRun(w){const M=this.M;return M.mode==="web"?!!M[w+"s"]:!!(M[w+"e"]&&!M[w+"e"].paused)},
+ musicPlay(w){const M=this.M,c=this.ctx;
+  if(M.mode==="web"){const s=c.createBufferSource();s.buffer=w==="d"?M.db:M.nb;s.loop=true;s.connect(w==="d"?M.dg:M.ng);s.start();M[w+"s"]=s}
+  else{const e=M[w+"e"];e.currentTime=0;e.play().catch(()=>{})}},
+ musicStop(w){const M=this.M;
+  if(M.mode==="web"){try{M[w+"s"]&&M[w+"s"].stop()}catch(e){}M[w+"s"]=null}else if(M[w+"e"])M[w+"e"].pause()},
+ musicReset(){const M=this.M;if(!M.ready)return;this.musicStop("d");this.musicStop("n")},
+ setMusic(v){this.M.on=v;store.set("hd_nomusic",!v)},
+ /* Mỗi khung hình: trọng số đêm w theo đồng hồ G.t (hoàng hôn 80→94, đêm 94→142, bình minh 142→150) */
+ musicUpdate(){const M=this.M;if(!M.ready||!this.ctx)return;const st=G.state;let w=0;
+  if(st!=="menu"&&st!=="tutorial"){const t=G.t;w=G.boss?1:t<80?0:t<94?(t-80)/14:t<142?1:Math.max(0,(150-t)/8)}
+  const duck=st==="play"?1:st==="panel"?.85:st==="pause"?.5:st==="dead"?.3:st==="menu"?.8:st==="tutorial"?.6:1;
+  const on=M.on&&!this.muted?1:0,gd=.5*duck*on*Math.cos(w*Math.PI/2),gn=.55*duck*on*Math.sin(w*Math.PI/2);
+  if(gd>.001&&!this.musicRun("d"))this.musicPlay("d");
+  if(gn>.001&&!this.musicRun("n"))this.musicPlay("n");
+  if(M.mode==="web"){const t=this.ctx.currentTime;M.dg.gain.setTargetAtTime(gd,t,1.2);M.ng.gain.setTargetAtTime(gn,t,1.2);
+   if(gn<.001&&M.ns&&M.ng.gain.value<.003)this.musicStop("n")}
+  else{const f=(e,g)=>{if(!e)return;const v=Math.min(1,g*.8);e.volume+=(v-e.volume)*.04;if(g<.001&&e.volume<.003&&!e.paused)e.pause()};f(M.de,gd);f(M.ne,gn)}}
 };
 
 /* ================= STATE ================= */
@@ -561,7 +588,7 @@ let DIFF=DIFFS[G.diff];
 function newInv(){const o={};RESKEYS.forEach(k=>o[k]=0);return o;}
 function reset(){
  DIFF=DIFFS[G.diff]||DIFFS.normal;
- G.t=12;G.day=1;G.slow=0;G.winT=0;G.shake=0;G.hurt=0;G.qi=0;G.qFlash=0;G.throneArm=0;G.barMsg=0;
+ G.t=12;AU.musicReset();G.day=1;G.slow=0;G.winT=0;G.shake=0;G.hurt=0;G.qi=0;G.qFlash=0;G.throneArm=0;G.barMsg=0;
  G.inv=newInv();G.gear={tool:0,weapon:0,armor:0};
  G.stats={kills:0,built:0,nights:0,g:newInv()};
  G.player={x:0,y:150,r:13,hp:100,maxHp:100,hunger:100,face:-Math.PI/2,moving:false,invuln:0,flash:0,regenBlock:0,dashT:0,dashDir:0,anim:0};
@@ -1066,6 +1093,9 @@ press($("btnHome"),goHome);press($("btnReP"),restart);press($("btnReD"),restart)
 press($("btnRespawn"),respawn);press($("btnCont"),continueGame);
 function toggleMute(){AU.init();AU.setMute(!AU.muted);refreshSound();if(!AU.muted)AU.play("click");}
 press($("btnMute"),toggleMute);press($("btnMenuSound"),toggleMute);press($("btnPSound"),toggleMute);
+function toggleMusic(){AU.init();AU.setMusic(!AU.M.on);refreshMusic();if(AU.M.on)AU.play("click");}
+function refreshMusic(){const b=$("btnPMusic");if(b)b.textContent="🎵 Nhạc nền: "+(AU.M.on?"BẬT":"TẮT");}
+press($("btnPMusic"),toggleMusic);
 function refreshSound(){const s=ICO[AU.muted?"mute":"sound"];$("icMute").src=s;$("icMenuSound").src=s;$("icPSound").src=s;}
 document.querySelectorAll("#diffRow .seg").forEach(b=>{b.addEventListener("pointerdown",e=>{e.preventDefault();AU.init();
  G.diff=b.dataset.d;store.set("hd_diff",G.diff);document.querySelectorAll("#diffRow .seg").forEach(x=>x.classList.toggle("sel",x===b));
@@ -1077,6 +1107,7 @@ window.addEventListener("keydown",e=>{const c=e.code;
  else if(c==="KeyK"||c==="ShiftLeft")dashAction();
  else if(c==="KeyE")eatAction();
  else if(c==="KeyM")toggleMute();
+ else if(c==="KeyN")toggleMusic();
  else if(c==="KeyC"){if(G.state==="panel"&&G.panel.mode==="craft")closePanel();else openPanel("craft");}
  else if(c==="KeyB"){if(G.state==="panel"&&G.panel.mode==="build")closePanel();else openPanel("build");}
  else if(c==="Escape"||c==="KeyP"){
@@ -1089,7 +1120,9 @@ document.addEventListener("touchmove",e=>{if(!e.target.closest("#panelList")&&!e
 document.addEventListener("gesturestart",e=>e.preventDefault());
 window.addEventListener("blur",()=>{G.keys={};G.attackHeld=false;G.joy.x=G.joy.y=0;});
 document.addEventListener("contextmenu",e=>e.preventDefault());
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&G.state==="play")openPause();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&G.state==="play")openPause();
+  if(AU.ctx){if(document.hidden)AU.ctx.suspend().catch(()=>{});else AU.ctx.resume().catch(()=>{});}
+  if(AU.M.mode==="el"){["de","ne"].forEach(k=>{const e=AU.M[k];if(e&&document.hidden)e.pause()})}});
 const pmq=window.matchMedia("(orientation: portrait)");
 function orient(){if(pmq.matches&&G.state==="play"){openPause();G.autoP=true;}
  else if(!pmq.matches&&G.autoP&&G.state==="pause"){G.autoP=false;resumeGame();}}
@@ -1164,7 +1197,7 @@ function updateFx(rdt){G.shake*=Math.pow(.002,rdt);if(G.shake<.1)G.shake=0;
    if(p.t>=p.life)G.parts.splice(i,1);}
   for(let i=G.floats.length-1;i>=0;i--){const f=G.floats[i];f.t-=rdt*.9;f.y-=34*rdt;if(f.t<=0)G.floats.splice(i,1);}
   if(G.swing){G.swing.t-=rdt;if(G.swing.t<=0)G.swing=null;}}
- AU.setWind(G.state==="play"?(isNight()?.05:.018):0);}
+ AU.setWind(G.state==="play"?(isNight()?.05:.018):0);AU.musicUpdate();}
 
 /* ================= RENDER ================= */
 function drawGround(){const x0=G.cam.x-vw/2-60,y0=G.cam.y-vh/2-60,w=vw+120,h=vh+120;

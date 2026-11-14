@@ -1,7 +1,8 @@
 /* Hoang Da — service worker: chơi offline sau lần tải đầu */
-const CACHE = "hoangda-v1";
+const CACHE = "hoangda-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest",
-  "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
+  "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png",
+  "./music/ban-ngay.mp3", "./music/ban-dem.mp3"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
