@@ -65,7 +65,8 @@ Hồi sinh tại lửa trại, giữ nguyên trang bị và căn cứ nhưng m�
 ---
 
 ### Xây / Phá dỡ công trình (chọn ô dễ hơn)
-- Bấm **XÂY DỰNG** (hoặc phím **B**) → chọn công trình hoặc **Phá Dỡ**, rồi **chạm / bấm chuột lên bản đồ** để chọn ô. Kéo ngón tay để rê ô đi theo.
+- Bấm **XÂY DỰNG** (hoặc phím **B**) → chọn công trình. **Kéo thả:** giữ biểu tượng công trình trên thanh xây (hoặc kéo trên bản đồ), rê tới ô muốn xây rồi **thả tay/chuột là đặt**. Thả xuống sát thanh xây phía dưới = huỷ. Khi kéo, ô nằm cao hơn ngón tay một chút để khỏi bị che.
+- **Chạm nhẹ** lên bản đồ chỉ chọn ô (không tự đặt), bấm **ĐẶT** để xác nhận. **Phá Dỡ** không tự phá khi thả, phải bấm **PHÁ**.
 - Bàn phím mũi tên ở góc phải: nhích ô **từng ô một**; nút ◎ ở giữa = quay về ô trước mặt nhân vật (kiểu cũ).
 - Bản đồ hiện **lưới 40px**; ở Phá Dỡ, mọi công trình đang thấy được viền đứt đỏ để dễ chọn.
 - Dòng chữ phía trên thanh xây báo lý do không đặt được (đã có công trình, vùng chưa mở, vướng cây/đá, thiếu nguyên liệu...).

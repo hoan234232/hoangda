@@ -122,6 +122,10 @@ img{pointer-events:none}
 .midbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #14100a}
 #buildBar{position:absolute;left:50%;bottom:calc(12px + var(--sab));transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:linear-gradient(#3a2a17f0,#241708f0);border:3px solid #14100a;border-radius:16px;padding:6px 10px;box-shadow:0 5px 0 rgba(0,0,0,.45)}
 #bpIc{width:34px;height:34px}
+#bpGrip{width:8px;height:22px;flex:none;background:radial-gradient(circle,rgba(201,183,143,.8) 1.3px,transparent 1.7px) 0 0/4px 7px;touch-action:none}
+#bpIc,#bpInfo,#bpGrip{touch-action:none;cursor:grab}
+#hud.demo #bpIc,#hud.demo #bpInfo,#hud.demo #bpGrip{cursor:default}
+#hud.demo #bpGrip{display:none}
 #bpInfo{min-width:110px}
 #bpName{font-size:13px;font-weight:800;color:#ffe9c4;line-height:1.1}
 #bpCost{display:flex;gap:4px;flex-wrap:wrap}
@@ -304,7 +308,7 @@ h2.ptitle.gold{color:#ffd66b;text-shadow:0 0 26px rgba(255,214,107,.6),0 3px 0 #
       <button class="midbtn pe" id="btnBuild"><img data-ic="hammer" alt=""><b>XÂY DỰNG</b></button>
     </div>
     <div id="buildBar" class="hidden pe">
-      <img id="bpIc" alt=""><div id="bpInfo"><div id="bpName"></div><div id="bpCost"></div></div>
+      <span id="bpGrip" aria-hidden="true"></span><img id="bpIc" alt=""><div id="bpInfo"><div id="bpName"></div><div id="bpCost"></div></div>
       <button class="bbtn" id="btnPlace">ĐẶT</button><button class="bbtn" id="btnExit">✕</button>
     </div>
     <div id="buildHint"></div>
@@ -919,7 +923,7 @@ function collideNodes(e,r){for(const n of G.nodes){if(n.hp<=0||!NODECFG[n.type].
 function enterBuild(bp){G.build.on=true;G.build.bp=bp;G.build.manual=false;$("hud").classList.add("building");
  $("buildBar").classList.remove("hidden");const B=BUILDS[bp];
  $("bpIc").src=ICO[B?B.ic:"close"];$("bpName").textContent=B?B.n:"Phá Dỡ (hoàn 50%)";
- $("btnPlace").textContent=bp==="demolish"?"PHÁ":"ĐẶT";refreshBpCost();AU.play("click");}
+ $("btnPlace").textContent=bp==="demolish"?"PHÁ":"ĐẶT";$("hud").classList.toggle("demo",bp==="demolish");refreshBpCost();AU.play("click");}
 function refreshBpCost(){const bp=G.build.bp,B=BUILDS[bp];
  $("bpCost").innerHTML=B?costHTML(B.cost):'<span class="cost">Chọn công trình để phá</span>';}
 function exitBuild(){G.build.on=false;$("hud").classList.remove("building");$("buildBar").classList.add("hidden");AU.play("close");}
@@ -952,7 +956,7 @@ function tryPlace(){if(!G.build.on)return;ghostCalc();const g=G.build;
   const b=g.target,c=BUILDS[b.type].cost;for(const k in c)addInv(k,Math.floor(c[k]*.5));
   G.buildings.splice(G.buildings.indexOf(b),1);parts("dust",b.x,b.y,12);AU.play("build");refreshBpCost();return;}
  const B=BUILDS[g.bp];
- if(!g.valid){AU.play("error");toast("Không thể đặt ở đây!","err");return;}
+ if(!g.valid){AU.play("error");toast(g.why||"Không thể đặt ở đây!","err");return;}
  if(!spend(B.cost)){AU.play("error");toast("Không đủ nguyên liệu!","err");return;}
  G.buildings.push({type:g.bp,x:g.gx,y:g.gy,hp:B.hp,maxHp:B.hp,cd:0,flash:0});
  G.stats.built++;parts("dust",g.gx,g.gy,10);AU.play("build");V(12);refreshBpCost();}
@@ -1121,12 +1125,24 @@ function joyEnd(e){if(e.pointerId!==G.joy.id)return;G.joy.id=null;G.joy.x=G.joy.
  if(e.type==="pointerup"&&!G.joy.moved&&G.build.on&&G.state==="play"){aimScreen(G.joy.sx,G.joy.sy);AU.play("click");}
  jb.style.left=jb.style.top=jb.style.bottom="";jk.style.transform="translate(-50%,-50%)";}
 jz.addEventListener("pointerup",joyEnd);jz.addEventListener("pointercancel",joyEnd);
-const az=$("aimZone");let aimId=null;
-az.addEventListener("pointerdown",e=>{if(!G.build.on||G.state!=="play")return;e.preventDefault();AU.init();
- aimId=e.pointerId;try{az.setPointerCapture(e.pointerId);}catch(x){}aimScreen(e.clientX,e.clientY);AU.play("click");});
-az.addEventListener("pointermove",e=>{if(e.pointerId===aimId&&G.build.on&&G.state==="play")aimScreen(e.clientX,e.clientY);});
-const aimEnd=e=>{if(e.pointerId===aimId)aimId=null;};
-az.addEventListener("pointerup",aimEnd);az.addEventListener("pointercancel",aimEnd);
+const az=$("aimZone"),D={id:null,src:"",sx:0,sy:0,moved:false};
+const LIFT=48;
+/* kéo thả: khi đang kéo, ô xây nằm cao hơn ngón tay để khỏi bị che; chạm nhẹ thì ô nằm đúng chỗ chạm */
+function aimPtr(cx,cy){const lift=G.build.bp==="demolish"?0:D.src==="bar"?LIFT:Math.min(LIFT,hyp(cx-D.sx,cy-D.sy));aimScreen(cx,cy-lift);}
+function dragBegin(e,src){if(!G.build.on||G.state!=="play")return;if(src==="bar"&&G.build.bp==="demolish")return;
+ e.preventDefault();AU.init();D.id=e.pointerId;D.src=src;D.sx=e.clientX;D.sy=e.clientY;D.moved=(src==="bar");
+ aimPtr(e.clientX,e.clientY);AU.play("click");}
+az.addEventListener("pointerdown",e=>dragBegin(e,"map"));
+/* kéo từ biểu tượng công trình trên thanh xây ra bản đồ, thả là đặt */
+for(const id of["bpIc","bpInfo","bpGrip"])$(id).addEventListener("pointerdown",e=>dragBegin(e,"bar"));
+window.addEventListener("pointermove",e=>{if(e.pointerId!==D.id)return;
+ if(!D.moved&&hyp(e.clientX-D.sx,e.clientY-D.sy)>12)D.moved=true;
+ if(G.build.on&&G.state==="play")aimPtr(e.clientX,e.clientY);});
+function dragEnd(e){if(e.pointerId!==D.id)return;const was=D.moved;D.id=null;D.moved=false;
+ if(e.type!=="pointerup"||!was||!G.build.on||G.state!=="play"||G.build.bp==="demolish")return;
+ /* thả xuống sát thanh xây phía dưới = huỷ */
+ if(e.clientY<$("buildBar").getBoundingClientRect().top-8)tryPlace();}
+window.addEventListener("pointerup",dragEnd);window.addEventListener("pointercancel",dragEnd);
 function press(el,fn){el.addEventListener("pointerdown",e=>{e.preventDefault();AU.init();fn();});}
 (function(){const b=$("btnAtk");
  b.addEventListener("pointerdown",e=>{e.preventDefault();AU.init();try{b.setPointerCapture(e.pointerId);}catch(x){}
@@ -1658,7 +1674,8 @@ function updateHud(){const P=G.player;
   if(gb.bp==="demolish")hint=gb.target?"Bấm PHÁ để dỡ công trình đã chọn":"Chạm vào công trình để chọn phá";
   else if(!gb.valid){hint=gb.why||"Không thể đặt ở đây";bad=true;}
   else if(!canAfford(BB.cost)){hint="Không đủ nguyên liệu";bad=true;}
-  else hint="Chạm bản đồ để chọn ô · bấm ĐẶT để xây";
+  else if(D.id!==null&&D.moved)hint="Thả để đặt · kéo xuống thanh dưới để huỷ";
+  else hint="Kéo công trình ra bản đồ rồi thả · hoặc chạm ô + bấm ĐẶT";
   const hb=$("buildHint");if(hb.textContent!==hint)hb.textContent=hint;hb.classList.toggle("bad",bad);}
  drawDial();drawMinimap();}
 
